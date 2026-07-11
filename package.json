@@ -1,0 +1,18 @@
+{
+  "name": "space-rover-ai",
+  "version": "1.0.0",
+  "description": "AI-powered space rover system",
+  "private": true,
+  "scripts": {
+    "frontend:install": "npm install --prefix frontend",
+    "frontend:dev": "npm run dev --prefix frontend",
+    "frontend:build": "npm run build --prefix frontend",
+    "backend:dev": "uvicorn backend.app.main:app --reload",
+    "install:all": "npm install && npm run frontend:install"
+  },
+  "workspaces": [
+    "frontend"
+  ],
+  "dependencies": {},
+  "devDependencies": {}
+}
