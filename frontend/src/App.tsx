@@ -726,7 +726,7 @@ export default function App() {
     setPredictionLoading(true);
     setPredictionResult(null);
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/v1/predict', {
+      const response = await fetch('http://13.201.95.245:8000/api/v1/predict', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -761,7 +761,7 @@ export default function App() {
     setChatLoading(true);
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/v1/ai/chat', {
+      const response = await fetch('http://13.201.95.245:8000/api/v1/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: trimmed }),
