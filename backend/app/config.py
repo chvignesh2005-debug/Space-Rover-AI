@@ -32,7 +32,7 @@ class Settings(BaseSettings):
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
 
     class Config:
-        env_file = os.path.join(os.path.dirname(__file__), "..", ".env")
+        env_file = os.path.join(os.path.dirname(__file__), "..", "..", ".env")
         env_file_encoding = "utf-8"
         extra = "ignore"
 
