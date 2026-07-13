@@ -143,3 +143,7 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+*.pyc
+*.pkl
+*.db
+
