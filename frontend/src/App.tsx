@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { askAI } from '../services/api';
 
 type TabKey = 'dashboard' | 'prediction' | 'assistant' | 'reports' | 'about';
 
@@ -761,18 +762,8 @@ export default function App() {
     setChatLoading(true);
 
     try {
-      const response = await fetch('https://space-rover-ai-3.onrender.com/api/v1/ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: trimmed }),
-      });
-      if (!response.ok) {
-        throw new Error(`AI service responded with status ${response.status}`);
-      }
-      const data = await response.json();
-      const reply =
-        (data && (data.reply ?? data.response ?? data.message ?? data.answer)) ??
-        'The AI assistant did not return a response.';
+      const data = await askAI(trimmed);
+      const reply = data?.explanation ?? 'The AI assistant did not return a response.';
       setChatMessages((prev) => [...prev, { role: 'ai', text: String(reply) }]);
     } catch (err) {
       const message =
