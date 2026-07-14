@@ -13,10 +13,13 @@ class Settings(BaseSettings):
     APP_ENV: str = "development"
     APP_HOST: str = "0.0.0.0"
     APP_PORT: int = 8000
-    DEBUG: bool = True
+    DEBUG: bool = os.getenv("DEBUG", "False").lower() == "true"
 
     # CORS — comma-separated list resolved to a Python list below
-    CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
+    CORS_ORIGINS: str = os.getenv(
+    "CORS_ORIGINS",
+    "https://main.d3ff6psmre7r2a.amplifyapp.com"
+)
 
     # OpenAI (never hard-coded — must exist in .env)
     OPENAI_API_KEY: str = ""
