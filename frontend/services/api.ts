@@ -78,6 +78,10 @@ export interface HealthResponse {
   message: string;
 }
 
+export interface AIResponse {
+  explanation: string;
+}
+
 // ── API Methods ─────────────────────────────────────────────────────────────
 
 /**
@@ -95,6 +99,17 @@ export async function getHealth(): Promise<HealthResponse> {
  */
 export async function postPredict(payload: TelemetryInput): Promise<PredictionResponse> {
   const { data } = await apiClient.post<PredictionResponse>('/predict', payload);
+  return data;
+}
+
+/**
+ * POST /api/v1/ai/explain
+ * Send a prompt to the OpenAI-backed AI assistant and receive an explanation.
+ */
+export async function askAI(prompt: string): Promise<AIResponse> {
+  const { data } = await apiClient.post<AIResponse>('/ai/explain', {
+    prediction: prompt,
+  });
   return data;
 }
 
