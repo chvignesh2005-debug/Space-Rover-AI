@@ -3,11 +3,10 @@ from ai.openai_service import get_ai_explanation
 
 router = APIRouter(prefix="/ai", tags=["AI"])
 
-
-@router.post("/explain")
-def explain(data: dict):
-    prediction = data.get("prediction", "")
-    explanation = get_ai_explanation(prediction)
+@router.post("/chat")
+def chat(data: dict):
+    message = data.get("message", "")
+    reply = get_ai_explanation(message)
     return {
-        "explanation": explanation
+        "reply": reply
     }
