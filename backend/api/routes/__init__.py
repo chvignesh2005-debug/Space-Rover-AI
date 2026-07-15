@@ -1,11 +1,10 @@
-from fastapi import APIRouter
+"""
+api/routes/__init__.py
 
-from api.routes.health import router as health_router
-from api.routes.predict import router as predict_router
-from api.ai import router as ai_router
+Intentionally empty. Router assembly (mounting health/predict/ai routers
+onto `api_router`) lives in a single place: backend/api/__init__.py.
 
-api_router = APIRouter()
-
-api_router.include_router(health_router)
-api_router.include_router(predict_router)
-api_router.include_router(ai_router)
+(Previously this file contained a byte-for-byte duplicate of that
+assembly code, which was never actually used by main.py and had drifted
+into being confusing dead code.)
+"""
