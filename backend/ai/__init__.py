@@ -1,6 +1,6 @@
 """
 ai/__init__.py
 """
-from .openai_service import generate_mission_summary
+from .openai_service import get_ai_explanation
 
-__all__ = ["generate_mission_summary"]
+__all__ = ["get_ai_explanation"]
