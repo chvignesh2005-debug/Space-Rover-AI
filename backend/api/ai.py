@@ -1,35 +1,62 @@
-from fastapi import APIRouter
-from pydantic import BaseModel
+"""
+api/ai.py
+
+POST /api/v1/ai/chat — the AI Assistant endpoint.
+
+This is the ONLY router registered for the AI Assistant (wired in via
+api/__init__.py -> api_router -> main.py -> app.include_router(..., prefix="/api/v1")).
+
+It delegates to ai.openai_service.get_ai_explanation(), which makes the
+real OpenAI Chat Completions call. Any failure (missing/invalid API key,
+network error, rate limit, empty response) is translated into a clean
+HTTP error instead of a raw 500 stack trace.
+"""
+
+import logging
+from fastapi import APIRouter, HTTPException, status
+from pydantic import BaseModel, Field
+
+from ai.openai_service import get_ai_explanation, AIServiceError
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/ai", tags=["AI"])
 
+
 class ChatRequest(BaseModel):
-    message: str
+    message: str = Field(..., min_length=1, description="The operator's question or telemetry prediction to analyze.")
 
-@router.post("/chat")
-def chat(data: ChatRequest):
 
-    msg = data.message.lower()
+class ChatResponse(BaseModel):
+    reply: str = Field(..., description="The AI Assistant's generated response.")
 
-    if "battery" in msg:
-        reply = (
-            "Battery temperature is high. Reduce rover speed, stop non-essential "
-            "systems and recharge if solar power is available."
+
+@router.post(
+    "/chat",
+    response_model=ChatResponse,
+    summary="AI Assistant Chat",
+    description=(
+        "Sends the operator's message to the OpenAI-backed rover diagnostic "
+        "assistant and returns its generated reply."
+    ),
+    responses={
+        422: {"description": "Validation error (empty/missing message)"},
+        502: {"description": "OpenAI request failed (bad/missing API key, network error, rate limit, etc.)"},
+    },
+)
+def chat(data: ChatRequest) -> ChatResponse:
+    logger.info(f"AI Assistant request received: {data.message[:200]!r}")
+
+    try:
+        reply = get_ai_explanation(data.message)
+    except AIServiceError as exc:
+        logger.error(f"AI Assistant request failed: {exc}")
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
+    except Exception as exc:
+        logger.exception("Unexpected error in AI Assistant route")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Unexpected AI Assistant failure: {exc}",
         )
 
-    elif "wheel" in msg:
-        reply = (
-            "Possible wheel issue detected. Inspect motor current and reduce terrain difficulty."
-        )
-
-    elif "camera" in msg:
-        reply = (
-            "Camera issue detected. Clean the lens and verify camera connection."
-        )
-
-    else:
-        reply = (
-            "All rover systems appear normal. Continue monitoring telemetry."
-        )
-
-    return {"reply": reply}
+    return ChatResponse(reply=reply)
