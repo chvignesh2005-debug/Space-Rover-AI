@@ -28,12 +28,30 @@ apiClient.interceptors.request.use((config) => {
 });
 
 // Response interceptor — surface error details
+function extractErrorMessage(error: any): string {
+  const detail = error.response?.data?.detail;
+
+  if (typeof detail === 'string' && detail.trim()) {
+    return detail;
+  }
+
+  // FastAPI validation errors (HTTP 422) return `detail` as an array of
+  // {loc, msg, type} objects rather than a plain string.
+  if (Array.isArray(detail) && detail.length > 0) {
+    return detail
+      .map((item: any) => (typeof item?.msg === 'string' ? item.msg : JSON.stringify(item)))
+      .join('; ');
+  }
+
+  return error.message ?? 'Unknown error';
+}
+
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    const detail = error.response?.data?.detail ?? error.message;
-    console.error('[API Error]', detail);
-    return Promise.reject(new Error(detail));
+    const message = extractErrorMessage(error);
+    console.error('[API Error]', message);
+    return Promise.reject(new Error(message));
   },
 );
 
@@ -79,7 +97,7 @@ export interface HealthResponse {
 }
 
 export interface AIResponse {
-  explanation: string;
+  reply: string;
 }
 
 // ── API Methods ─────────────────────────────────────────────────────────────
@@ -103,12 +121,16 @@ export async function postPredict(payload: TelemetryInput): Promise<PredictionRe
 }
 
 /**
- * POST /api/v1/ai/explain
- * Send a prompt to the OpenAI-backed AI assistant and receive an explanation.
+ * POST /api/v1/ai/chat
+ * Send a prompt to the OpenAI-backed AI assistant and receive its reply.
+ *
+ * NOTE: the backend route is registered at /api/v1/ai/chat (see
+ * backend/api/ai.py), and expects a JSON body of the shape
+ * `{ "message": string }`, returning `{ "reply": string }`.
  */
 export async function askAI(prompt: string): Promise<AIResponse> {
-  const { data } = await apiClient.post<AIResponse>('/ai/explain', {
-    prediction: prompt,
+  const { data } = await apiClient.post<AIResponse>('/ai/chat', {
+    message: prompt,
   });
   return data;
 }
