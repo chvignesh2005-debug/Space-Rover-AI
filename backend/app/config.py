@@ -17,12 +17,13 @@ class Settings(BaseSettings):
 
     # CORS — comma-separated list resolved to a Python list below
     CORS_ORIGINS: str = os.getenv(
-    "CORS_ORIGINS",
-    "https://main.d3ff6psmre7r2a.amplifyapp.com"
-)
+        "CORS_ORIGINS",
+        "https://main.d3ff6psmre7r2a.amplifyapp.com,http://localhost:3000,http://127.0.0.1:3000",
+    )
 
     # OpenAI (never hard-coded — must exist in .env)
     OPENAI_API_KEY: str = ""
+    OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
 
     # Model path (relative to the backend directory)
     MODEL_PATH: str = "../ml_model/model.pkl"
