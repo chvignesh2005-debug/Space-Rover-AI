@@ -1,17 +1,19 @@
 /**
  * services/api.ts
  *
- * Centralised Axios client for the Space-Rover-AI FastAPI backend.
+ * Centralised API client for the Space-Rover-AI FastAPI backend.
  * The base URL is driven by the Vite environment variable VITE_API_URL
- * (set in frontend/.env or Vite config), defaulting to localhost:8000.
+ * and defaults to the production Render endpoint.
  */
 
 import axios from 'axios';
 
+const apiBaseUrl = (import.meta.env.VITE_API_URL ?? 'https://space-rover-ai-3.onrender.com/api/v1').replace(/\/+$/, '');
+
 // ── Axios Instance ──────────────────────────────────────────────────────────
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1',
+  baseURL: apiBaseUrl,
   timeout: 15_000,
   headers: {
     'Content-Type': 'application/json',
@@ -135,4 +137,7 @@ export async function askAI(prompt: string): Promise<AIResponse> {
   return data;
 }
 
-export default apiClient;
+export async function postChatMessage(message: string): Promise<{ reply: string }> {
+  const { data } = await apiClient.post<{ reply: string }>('/ai/chat', { message });
+  return data;
+}

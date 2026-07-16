@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { askAI } from '../services/api';
+import { postChatMessage, postPredict } from '../services/api';
 
 type TabKey = 'dashboard' | 'prediction' | 'assistant' | 'reports' | 'about';
 
@@ -727,19 +727,11 @@ export default function App() {
     setPredictionLoading(true);
     setPredictionResult(null);
     try {
-      const response = await fetch('https://space-rover-ai-3.onrender.com/api/v1/predict', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          battery: Number(battery),
-          temperature: Number(temperature),
-          speed: Number(speed),
-        }),
+      const data = await postPredict({
+        battery: Number(battery),
+        temperature: Number(temperature),
+        speed: Number(speed),
       });
-      if (!response.ok) {
-        throw new Error(`prediction service responded with status ${response.status}`);
-      }
-      const data = await response.json();
       setPredictionResult(normalizePrediction(data));
     } catch (err) {
       setPredictionError(
@@ -762,7 +754,7 @@ export default function App() {
     setChatLoading(true);
 
     try {
-      const data = await askAI(trimmed);
+      const data = await postChatMessage(trimmed);
       const reply = data?.reply ?? 'The AI assistant did not return a response.';
       setChatMessages((prev) => [...prev, { role: 'ai', text: String(reply) }]);
     } catch (err) {

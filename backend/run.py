@@ -7,14 +7,17 @@ Usage:
     uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 """
 
+import os
+
 import uvicorn
 from app.config import settings
 
 if __name__ == "__main__":
+    port = int(os.getenv("PORT", str(settings.APP_PORT)))
     uvicorn.run(
         "app.main:app",
         host=settings.APP_HOST,
-        port=settings.APP_PORT,
+        port=port,
         reload=settings.DEBUG,
         log_level=settings.LOG_LEVEL.lower(),
     )

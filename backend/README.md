@@ -89,15 +89,15 @@ python run.py
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-The API will be available at **http://localhost:8000**  
-Interactive docs: **http://localhost:8000/docs**
+The API will be available at **https://space-rover-ai-3.onrender.com**
+Interactive docs: **https://space-rover-ai-3.onrender.com/docs**
 
 ---
 
 ## Example Request
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/predict \
+curl -X POST https://space-rover-ai-3.onrender.com/api/v1/predict \
   -H "Content-Type: application/json" \
   -d '{
     "battery": 35.0,
