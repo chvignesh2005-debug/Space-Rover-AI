@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from ai.openai_service import get_ai_explanation
+from ai.gemini_service import get_ai_explanation
 
 router = APIRouter(prefix="/ai", tags=["AI"])
 

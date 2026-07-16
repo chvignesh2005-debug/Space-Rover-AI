@@ -51,14 +51,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     else:
         logger.warning("ML model not found. API will serve mock predictions.")
 
-    # Validate that the OpenAI key is configured (warn but don't crash)
-    if not settings.OPENAI_API_KEY or settings.OPENAI_API_KEY.startswith("sk-your"):
+    # Validate that the Gemini key is configured (warn but don't crash)
+    if not settings.GEMINI_API_KEY:
         logger.warning(
-            "OPENAI_API_KEY is not set or is still the placeholder value. "
+            "GEMINI_API_KEY is not set. "
             "AI-powered features may be unavailable."
         )
     else:
-        logger.info("OpenAI API key detected — AI features are available.")
+        logger.info("Gemini API key detected — AI features are available.")
 
     yield  # ←── application runs here
 

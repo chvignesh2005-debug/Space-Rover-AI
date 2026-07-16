@@ -21,9 +21,9 @@ class Settings(BaseSettings):
         "https://main.d3ff6psmre7r2a.amplifyapp.com,http://localhost:3000,http://127.0.0.1:3000",
     )
 
-    # OpenAI (never hard-coded — must exist in .env)
-    OPENAI_API_KEY: str = ""
-    OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
+    # Gemini (never hard-coded — must exist in env)
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
     # Model path (relative to the backend directory)
     MODEL_PATH: str = "ml_model/model.pkl"
