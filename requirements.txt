@@ -10,6 +10,12 @@ python-dotenv==1.0.1
 
 python-multipart==0.0.9
 
-openai==1.35.10
+openai==2.45.0
 
 email-validator==2.2.0
+
+numpy==1.26.4
+
+scikit-learn==1.5.1
+
+joblit==1.5.3
