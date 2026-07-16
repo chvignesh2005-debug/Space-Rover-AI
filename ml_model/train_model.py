@@ -184,6 +184,12 @@ def main() -> None:
     ))
 
     joblib.dump(model, "model.pkl")
+
+    backend_model_path = os.path.join("backend", "ml", "model.pkl")
+    os.makedirs(os.path.dirname(backend_model_path), exist_ok=True)
+    shutil.copy2("model.pkl", backend_model_path)
+    print(f"Copied model.pkl to {backend_model_path}")
+
     print("\nmodel.pkl created successfully (joblib format).")
 
 

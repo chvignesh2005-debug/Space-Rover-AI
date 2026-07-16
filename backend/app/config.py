@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
 
     # Model path (relative to the backend directory)
-    MODEL_PATH: str = "../ml_model/model.pkl"
+    MODEL_PATH: str = "ml_model/model.pkl"
 
     # Logging
     LOG_LEVEL: str = "INFO"

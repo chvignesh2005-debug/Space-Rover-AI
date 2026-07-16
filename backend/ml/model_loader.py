@@ -77,7 +77,20 @@ def load_model(model_path: str) -> bool:
     strict = os.getenv("STRICT_MODEL_LOADING", "false").lower() == "true"
 
     BASE_DIR = os.path.dirname(os.path.dirname(__file__))
-    abs_path = os.path.abspath(os.path.join(BASE_DIR, model_path))
+    candidate_paths = [
+        os.path.abspath(os.path.join(BASE_DIR, model_path)),
+        os.path.abspath(os.path.join(BASE_DIR, "ml", "model.pkl")),
+        os.path.abspath(os.path.join(BASE_DIR, "..", "ml_model", "model.pkl")),
+    ]
+
+    abs_path = None
+    for candidate in candidate_paths:
+        if os.path.isfile(candidate):
+            abs_path = candidate
+            break
+
+    if abs_path is None:
+        abs_path = candidate_paths[0]
     logger.info(f"Attempting to load model from: {abs_path}")
 
     if not os.path.isfile(abs_path):
@@ -92,6 +105,8 @@ def load_model(model_path: str) -> bool:
         return False
 
     try:
+        file_size = os.path.getsize(abs_path)
+        logger.info(f"Found model.pkl at {abs_path} (size={file_size} bytes)")
         _model = joblib.load(abs_path)
         _model_loaded = True
         logger.info(
