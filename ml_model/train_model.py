@@ -70,11 +70,18 @@ joblib==1.5.3) — e.g. from within a venv built from that file — so the
 artifact it produces is guaranteed to deserialize on Render.
 """
 
-import numpy as np
-import joblib
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report, accuracy_score
+try:
+    import numpy as np
+    import joblib
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.model_selection import train_test_split
+    from sklearn.metrics import classification_report, accuracy_score
+except ImportError as exc:
+    raise ImportError(
+        "Missing required dependencies for model training. "
+        "Install the pinned backend requirements from backend/requirements.txt "
+        "(numpy, scikit-learn, joblib) before running this script."
+    ) from exc
 
 RANDOM_STATE = 42
 N_SAMPLES = 6000
