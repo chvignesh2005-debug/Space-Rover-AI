@@ -14,7 +14,7 @@ const apiBaseUrl = (import.meta.env.VITE_API_URL ?? 'https://space-rover-ai-3.on
 
 const apiClient = axios.create({
   baseURL: apiBaseUrl,
-  timeout: 15_000,
+  timeout: 120000,
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',

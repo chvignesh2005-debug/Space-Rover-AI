@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from ai.gemini_service import get_ai_explanation
+get_ai_explanation
 
 router = APIRouter(prefix="/ai", tags=["AI"])
 
@@ -7,6 +7,7 @@ router = APIRouter(prefix="/ai", tags=["AI"])
 def chat(data: dict):
     message = data.get("message", "")
     reply = get_ai_explanation(message)
+
     return {
         "reply": reply
     }

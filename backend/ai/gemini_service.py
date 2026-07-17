@@ -1,102 +1,111 @@
 """
-ai/gemini_service.py
+backend/ai/gemini_service.py
 
-Thin wrapper around the Google GenAI API used by the
-Space-Rover-AI AI Assistant (`POST /api/v1/ai/chat`).
+Wraps the Google Gemini API (via the `google-genai` SDK) for the
+AI Assistant chat feature.
+
+Import-time safety note
+------------------------
+app/main.py imports api.api_router, which imports api/ai.py, which
+imports THIS module. If this module raises at import time (as the
+previous version did via a module-level `raise RuntimeError`), the
+entire FastAPI app fails to start -- every route, not just /ai/chat --
+even though main.py's own lifespan handler is written to let the app
+start in degraded mode when GEMINI_API_KEY is missing (it only logs a
+warning). So this module never raises at import time. A missing key
+is recorded, and get_ai_explanation() raises a normal, catchable
+RuntimeError only when it is actually called.
 """
 
+from pathlib import Path
+from typing import Optional
 import logging
 import os
-from google import genai
-from google.genai import types
+import time
 
-from app.config import settings
+from dotenv import load_dotenv
+from google import genai
+from google.genai import errors as genai_errors
 
 logger = logging.getLogger(__name__)
 
-_client: genai.Client | None = None
+# backend/ai/gemini_service.py -> parent = backend/ai -> parent = backend/
+BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
 
+API_KEY = os.getenv("GEMINI_API_KEY")
 
-class AIServiceError(Exception):
-    """Raised whenever the Gemini-backed assistant cannot produce a reply."""
+# gemini-2.0-flash-lite was shut down by Google on June 1, 2026 -- every
+# call using that model ID now returns HTTP 404 NOT_FOUND. That was the
+# confirmed cause of this project's "404 Model Not Found" issue.
+# gemini-3.1-flash-lite is the current-generation, non-preview
+# replacement in the same cost/latency tier (released May 7, 2026;
+# per Google's official Gemini API deprecation schedule, its earliest
+# possible shutdown date is May 7, 2027). Overridable via GEMINI_MODEL
+# in .env so the next model migration is a config change, not a
+# code change.
+MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
 
+RETRYABLE_CODES = {429, 503}  # RESOURCE_EXHAUSTED, UNAVAILABLE
+MAX_RETRIES = 2
+BASE_DELAY_SECONDS = 1.0
 
-def _is_key_configured() -> bool:
-    key = settings.GEMINI_API_KEY
-    return bool(key)
+_client: Optional[genai.Client] = None
 
-
-def _get_client() -> genai.Client:
-    """Return a lazily-constructed, singleton Gemini client."""
-    global _client
-
-    if not _is_key_configured():
-        raise AIServiceError(
-            "GEMINI_API_KEY is not configured. Set it in the environment "
-            "before using the AI Assistant."
-        )
-
-    if _client is None:
-        _client = genai.Client(api_key=settings.GEMINI_API_KEY)
-
-    return _client
-
-
-def _build_prompt(message: str) -> str:
-    return f"""
-You are an expert NASA Mars Rover AI assistant.
-
-Analyze the following operator message / rover telemetry prediction carefully.
-
-Message:
-{message}
-
-Generate a professional, concise response using the following format.
-
-1. Overall Rover Status
-2. Problem Detected
-3. Possible Causes
-4. Risk Level (Low, Medium, High, Critical)
-5. Recommended Actions
-6. Expected Impact on Rover Mission
-7. Preventive Maintenance Suggestions
-8. Final Conclusion
-
-Explain everything clearly in simple English.
-Write around 200-300 words.
-"""
+if API_KEY:
+    _client = genai.Client(api_key=API_KEY)
+    logger.info(f"Gemini client initialized (model={MODEL_NAME}).")
+else:
+    logger.warning(
+        "GEMINI_API_KEY not found in backend/.env -- Gemini client was "
+        "NOT initialized. /api/v1/ai/chat will return an error until "
+        "this is set."
+    )
 
 
 def get_ai_explanation(message: str) -> str:
     """
-    Send `message` to the Google Gemini API and return the
-    assistant's reply as plain text.
+    Send `message` to Gemini and return the reply text.
 
-    Raises:
-        AIServiceError: if the API key is missing/invalid, the request
-        fails, or Gemini returns an error.
+    Retries up to MAX_RETRIES times, with exponential backoff, ONLY on
+    transient errors (429 RESOURCE_EXHAUSTED, 503 UNAVAILABLE). Any
+    other error (e.g. 404 model-not-found, 401/403 auth) fails
+    immediately, since retrying those can never succeed.
+
+    Raises RuntimeError on any ultimate failure, with the real Gemini
+    status code and message included, so the caller (api/ai.py) gets
+    an informative error instead of an opaque one.
     """
-    if not message or not message.strip():
-        raise AIServiceError("Message must not be empty.")
-
-    client = _get_client()
-    prompt = _build_prompt(message)
-
-    try:
-        response = client.models.generate_content(
-            model=settings.GEMINI_MODEL,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.7,
-                system_instruction="You are an intelligent NASA rover diagnostic assistant.",
-            ),
+    if _client is None:
+        raise RuntimeError(
+            "GEMINI_API_KEY is not configured on the server (backend/.env)."
         )
-    except Exception as exc:
-        logger.error(f"Gemini API generation failed: {exc}")
-        raise AIServiceError(f"Gemini API returned an error: {exc}") from exc
 
-    content = response.text
-    if not content:
-        raise AIServiceError("Gemini returned an empty message.")
+    last_error: Exception = RuntimeError("Gemini call did not run.")
 
-    return content
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            response = _client.models.generate_content(
+                model=MODEL_NAME,
+                contents=message,
+            )
+            return response.text or "No response from Gemini."
+
+        except genai_errors.APIError as e:
+            last_error = e
+            logger.error(
+                f"Gemini API error {e.code}: {e.message} "
+                f"(attempt {attempt + 1}/{MAX_RETRIES + 1})"
+            )
+            if e.code not in RETRYABLE_CODES or attempt == MAX_RETRIES:
+                raise RuntimeError(f"Gemini API error {e.code}: {e.message}") from e
+            time.sleep(BASE_DELAY_SECONDS * (2 ** attempt))
+
+        except Exception as e:
+            last_error = e
+            logger.exception("Unexpected error calling Gemini")
+            raise RuntimeError(f"Unexpected Gemini error: {e}") from e
+
+    # Unreachable in practice (the loop always returns or raises above),
+    # kept only so the function has an explicit exit path.
+    raise RuntimeError(f"Gemini API error: {last_error}")
